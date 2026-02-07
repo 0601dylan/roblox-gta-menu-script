@@ -1,0 +1,296 @@
+-- GTA ONLINE STYLE MENU (FULL, SMOOTH FLY)
+-- LocalScript → StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+--------------------------------------------------
+-- GUI
+--------------------------------------------------
+local gui = Instance.new("ScreenGui")
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local click = Instance.new("Sound", gui)
+click.SoundId = "rbxassetid://9118828565"
+click.Volume = 0.5
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromOffset(360, 560)
+main.Position = UDim2.fromOffset(12, 12)
+main.BackgroundColor3 = Color3.fromRGB(16,16,16)
+main.Active = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,16)
+Instance.new("UIStroke", main).Transparency = 0.6
+
+local topBar = Instance.new("Frame", main)
+topBar.Size = UDim2.new(1,0,0,4)
+topBar.BackgroundColor3 = Color3.fromRGB(0,140,255)
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0,44)
+title.Text = "GTA ONLINE MENU"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(240,240,240)
+title.BackgroundTransparency = 1
+title.Active = true
+
+-- drag
+do
+	local dragging, startPos, startInput
+	title.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1
+		or i.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			startInput = i.Position
+			startPos = main.Position
+		end
+	end)
+
+	UIS.InputChanged:Connect(function(i)
+		if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement
+		or i.UserInputType == Enum.UserInputType.Touch) then
+			local d = i.Position - startInput
+			main.Position = startPos + UDim2.fromOffset(d.X, d.Y)
+		end
+	end)
+
+	UIS.InputEnded:Connect(function()
+		dragging = false
+	end)
+end
+
+--------------------------------------------------
+-- LAYOUT
+--------------------------------------------------
+local sidebar = Instance.new("Frame", main)
+sidebar.Position = UDim2.fromOffset(0,44)
+sidebar.Size = UDim2.new(0,110,1,-44)
+sidebar.BackgroundColor3 = Color3.fromRGB(12,12,12)
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0,16)
+
+local content = Instance.new("Frame", main)
+content.Position = UDim2.fromOffset(110,44)
+content.Size = UDim2.new(1,-110,1,-44)
+content.BackgroundTransparency = 1
+
+local highlight = Instance.new("Frame", content)
+highlight.BackgroundColor3 = Color3.fromRGB(0,140,255)
+highlight.BackgroundTransparency = 0.35
+highlight.Visible = false
+Instance.new("UICorner", highlight).CornerRadius = UDim.new(0,8)
+
+--------------------------------------------------
+-- UTILS
+--------------------------------------------------
+local function clear()
+	for _,v in ipairs(content:GetChildren()) do
+		if v:IsA("GuiObject") and v ~= highlight then
+			v:Destroy()
+		end
+	end
+	highlight.Visible = false
+end
+
+local function getHumanoid()
+	local char = player.Character or player.CharacterAdded:Wait()
+	return char:WaitForChild("Humanoid"), char
+end
+
+local function button(text, parent, y)
+	local b = Instance.new("TextButton", parent)
+	b.Size = UDim2.new(1,-16,0,38)
+	b.Position = UDim2.new(0,8,0,y)
+	b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	b.Text = text
+	b.Font = Enum.Font.Gotham
+	b.TextSize = 14
+	b.TextColor3 = Color3.new(1,1,1)
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+
+	b.MouseButton1Click:Connect(function()
+		click:Play()
+		highlight.Size = b.Size
+		highlight.Position = b.Position
+		highlight.Visible = true
+	end)
+
+	return b
+end
+
+--------------------------------------------------
+-- TABS
+--------------------------------------------------
+local worldTab  = button("🌍 World", sidebar, 10)
+local playerTab = button("👤 Player", sidebar, 58)
+local camTab    = button("📷 Camera", sidebar, 106)
+local miscTab   = button("⚙ Misc", sidebar, 154)
+
+--------------------------------------------------
+-- 🌍 WORLD (6)
+--------------------------------------------------
+worldTab.MouseButton1Click:Connect(function()
+	clear()
+
+	button("☀ Day", content, 10).MouseButton1Click:Connect(function()
+		Lighting.ClockTime = 14
+	end)
+
+	button("🌙 Night", content, 56).MouseButton1Click:Connect(function()
+		Lighting.ClockTime = 0
+	end)
+
+	button("🌫 Toggle Fog", content, 102).MouseButton1Click:Connect(function()
+		Lighting.FogEnd = Lighting.FogEnd < 500 and 100000 or 120
+	end)
+
+	button("💡 Super Bright", content, 148).MouseButton1Click:Connect(function()
+		Lighting.Brightness = 6
+	end)
+
+	button("🛰 Low Gravity", content, 194).MouseButton1Click:Connect(function()
+		workspace.Gravity = 60
+	end)
+
+	button("🌎 Normal Gravity", content, 240).MouseButton1Click:Connect(function()
+		workspace.Gravity = 196.2
+	end)
+end)
+
+--------------------------------------------------
+-- 👤 PLAYER (SMOOTH FLY)
+--------------------------------------------------
+playerTab.MouseButton1Click:Connect(function()
+	clear()
+
+	local hum, char = getHumanoid()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	-- speed
+	local speed = false
+	button("⚡ Speed", content, 10).MouseButton1Click:Connect(function()
+		speed = not speed
+		hum.WalkSpeed = speed and 32 or 16
+	end)
+
+	-- jump
+	local jump = false
+	button("🦘 High Jump", content, 56).MouseButton1Click:Connect(function()
+		jump = not jump
+		hum.JumpPower = jump and 80 or 50
+	end)
+
+	-- god mode (visual safe)
+	local godConn
+	button("🛡 God Mode", content, 102).MouseButton1Click:Connect(function()
+		if godConn then godConn:Disconnect() end
+		hum.MaxHealth = 100
+		hum.Health = 100
+		godConn = hum.HealthChanged:Connect(function()
+			if hum.Health < 100 then hum.Health = 100 end
+		end)
+	end)
+
+	-- ✈ SMOOTH FLY
+	local flying = false
+	local bv, bg
+
+	button("✈ Fly", content, 148).MouseButton1Click:Connect(function()
+		flying = not flying
+
+		if flying then
+			hum:ChangeState(Enum.HumanoidStateType.Physics)
+			hum.AutoRotate = false
+
+			bv = Instance.new("BodyVelocity", hrp)
+			bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+
+			bg = Instance.new("BodyGyro", hrp)
+			bg.MaxTorque = Vector3.new(1e5,1e5,1e5)
+			bg.P = 9e4
+
+			RunService:BindToRenderStep("SmoothFly", Enum.RenderPriority.Character.Value + 1, function()
+				local camCF = camera.CFrame
+				local dir = Vector3.zero
+
+				if UIS:IsKeyDown(Enum.KeyCode.W) then dir += camCF.LookVector end
+				if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= camCF.LookVector end
+				if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= camCF.RightVector end
+				if UIS:IsKeyDown(Enum.KeyCode.D) then dir += camCF.RightVector end
+				if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.yAxis end
+				if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then dir -= Vector3.yAxis end
+
+				if dir.Magnitude > 0 then dir = dir.Unit end
+				bv.Velocity = bv.Velocity:Lerp(dir * 60, 0.15)
+				bg.CFrame = camCF
+			end)
+		else
+			RunService:UnbindFromRenderStep("SmoothFly")
+			if bv then bv:Destroy() end
+			if bg then bg:Destroy() end
+			hum.AutoRotate = true
+			hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+		end
+	end)
+
+	button("🔄 Instant Reset", content, 194).MouseButton1Click:Connect(function()
+		char:BreakJoints()
+	end)
+end)
+
+--------------------------------------------------
+-- 📷 CAMERA (4)
+--------------------------------------------------
+camTab.MouseButton1Click:Connect(function()
+	clear()
+
+	button("🔍 FOV Zoom", content, 10).MouseButton1Click:Connect(function()
+		camera.FieldOfView = 100
+	end)
+
+	button("↩ Reset FOV", content, 56).MouseButton1Click:Connect(function()
+		camera.FieldOfView = 70
+	end)
+
+	button("👁 First Person", content, 102).MouseButton1Click:Connect(function()
+		player.CameraMode = Enum.CameraMode.LockFirstPerson
+	end)
+
+	button("🔓 Free Camera", content, 148).MouseButton1Click:Connect(function()
+		player.CameraMode = Enum.CameraMode.Classic
+	end)
+end)
+
+--------------------------------------------------
+-- ⚙ MISC (4)
+--------------------------------------------------
+miscTab.MouseButton1Click:Connect(function()
+	clear()
+
+	button("💊 Heal", content, 10).MouseButton1Click:Connect(function()
+		local h = getHumanoid()
+		h.Health = h.MaxHealth
+	end)
+
+	button("🪑 Sit / Stand", content, 56).MouseButton1Click:Connect(function()
+		local h = getHumanoid()
+		h.Sit = not h.Sit
+	end)
+
+	button("🔊 Toggle Click Sound", content, 102).MouseButton1Click:Connect(function()
+		click.Volume = click.Volume > 0 and 0 or 0.5
+	end)
+
+	button("❌ Hide Menu", content, 148).MouseButton1Click:Connect(function()
+		main.Visible = false
+	end)
+end)
+
+-- auto open
+worldTab:Activate()
